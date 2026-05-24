@@ -98,3 +98,53 @@ export async function enviarParaRevisionDashboard(solicitanteId: string) {
 
   return { success: true }
 }
+
+export async function realizarPagoDashboard(solicitanteId: string, voucherBase64: string) {
+  const supabase = await createAuthClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: "No autenticado" }
+
+  const { data: solicitante } = await supabase
+    .from("solicitantes")
+    .select("id, dni")
+    .eq("id", solicitanteId)
+    .eq("auth_user_id", user.id)
+    .single()
+
+  if (!solicitante) return { error: "Solicitante no encontrado" }
+
+  const serverClient = createClient()
+  const { data: expediente } = await serverClient
+    .from("expedientes")
+    .select("id, estado")
+    .eq("solicitante_id", solicitanteId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!expediente) return { error: "Expediente no encontrado" }
+
+  if (expediente.estado !== "Pendiente de pago") {
+    return { error: "El expediente no está pendiente de pago" }
+  }
+
+  const transaccionId = "TXN-" + Date.now().toString(36).toUpperCase()
+  const folder = `solicitudes/${solicitante.dni}`
+  const voucherUrl = await subirArchivo("expedientes", `${folder}/voucher.png`, voucherBase64)
+
+  if (!voucherUrl) return { error: "Error al subir el comprobante" }
+
+  const { error: errPago } = await serverClient.from("pagos_inscripcion").insert({
+    expediente_id: expediente.id,
+    tipo_pago: "Virtual",
+    monto: 1500,
+    estado: "Pendiente",
+    transaccion_id: transaccionId,
+    comprobante_url: voucherUrl,
+  })
+
+  if (errPago) return { error: errPago.message }
+
+  return { success: true }
+}

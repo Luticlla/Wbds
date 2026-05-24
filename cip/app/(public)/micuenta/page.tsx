@@ -6,6 +6,7 @@ import { ESTADO_BADGE, formatDate, parsearObservaciones } from "@/lib/constants"
 import { listarNotificaciones } from "@/actions/notificaciones.actions"
 import { NotificacionesSection } from "./NotificacionesSection"
 import { CorregirExpediente } from "./CorregirExpediente"
+import { PagoForm } from "./PagoForm"
 import Link from "next/link"
 
 const ORDEN_ESTADOS = ["Pendiente", "Pendiente de pago", "Aprobado"]
@@ -42,7 +43,7 @@ function RevisionDetalle({ observaciones }: { observaciones: string }) {
         ))}
       </div>
       {comentario && (
-        <p className="mt-2 text-xs text-gray-600 italic">"{comentario}"</p>
+        <p className="mt-2 text-xs text-gray-600 italic">&ldquo;{comentario}&rdquo;</p>
       )}
     </div>
   )
@@ -91,6 +92,27 @@ function Timeline({ estadoActual, fechaCreacion, historial }: {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function ColegiadoBanner({ colegiado }: { colegiado: { numero_cip: string; estado_habilitacion: string; fecha_colegiatura: string } }) {
+  return (
+    <div className="rounded-lg border border-green-200 bg-green-50 p-6 md:col-span-3">
+      <div className="flex items-center gap-3">
+        <span className="text-3xl">🎉</span>
+        <div>
+          <h2 className="text-xl font-bold text-green-800">¡Ya eres colegiado!</h2>
+          <p className="text-green-700">
+            CIP: <strong className="font-mono">{colegiado.numero_cip}</strong>
+            {" — "}
+            {colegiado.estado_habilitacion === "Habilitado" ? "✅ Habilitado" : "❌ Inhabilitado"}
+          </p>
+          <p className="text-sm text-green-600">
+            Fecha de colegiatura: {formatDate(colegiado.fecha_colegiatura)}
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -181,6 +203,9 @@ export default async function UserDashboardPage() {
 
       {expediente ? (
         <div className="grid gap-6 md:grid-cols-3">
+          {expediente.estado === "Aprobado" && colegiado && (
+            <ColegiadoBanner colegiado={colegiado} />
+          )}
           <div className="rounded-lg border bg-white p-6 md:col-span-2">
             <h2 className="mb-4 text-lg font-semibold text-gray-800">📌 Estado del Trámite</h2>
             <div className="mb-4 flex items-center gap-3">
@@ -241,6 +266,15 @@ export default async function UserDashboardPage() {
                 tituloUrl={solicitante.titulo_url}
                 dniUrl={solicitante.dni_url}
               />
+            </div>
+          )}
+
+          {expediente?.estado === "Pendiente de pago" && (
+            <div className="md:col-span-3">
+              <div className="rounded-lg border bg-white p-6">
+                <h2 className="mb-4 text-lg font-semibold text-gray-800">💳 Pago de Inscripción</h2>
+                <PagoForm expedienteId={expediente.id} />
+              </div>
             </div>
           )}
         </div>

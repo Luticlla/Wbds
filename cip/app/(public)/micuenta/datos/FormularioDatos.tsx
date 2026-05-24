@@ -14,6 +14,7 @@ interface Props {
   universidadId: string | null
   universidades: Universidad[]
   carreraManual: string
+  esColegiado?: boolean
 }
 
 export function FormularioDatos({
@@ -22,6 +23,7 @@ export function FormularioDatos({
   universidadId,
   universidades,
   carreraManual,
+  esColegiado = false,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     async (_prev: unknown, formData: FormData) => actualizarDatos(formData),
@@ -33,20 +35,24 @@ export function FormularioDatos({
       <Input label="Correo electrónico" name="correo" type="email" defaultValue={correo} required />
       <Input label="Teléfono" name="telefono" defaultValue={telefono} />
 
-      <Select
-        label="Universidad"
-        placeholder="Selecciona una universidad"
-        options={universidades.map((u) => ({ value: u.id, label: u.nombre }))}
-        name="universidad_id"
-        defaultValue={universidadId ?? ""}
-      />
+      {!esColegiado && (
+        <>
+          <Select
+            label="Universidad"
+            placeholder="Selecciona una universidad"
+            options={universidades.map((u) => ({ value: u.id, label: u.nombre }))}
+            name="universidad_id"
+            defaultValue={universidadId ?? ""}
+          />
 
-      <Input
-        label="Carrera de ingeniería"
-        name="carrera_manual"
-        placeholder="Escribe el nombre de tu carrera"
-        defaultValue={carreraManual}
-      />
+          <Input
+            label="Carrera de ingeniería"
+            name="carrera_manual"
+            placeholder="Escribe el nombre de tu carrera"
+            defaultValue={carreraManual}
+          />
+        </>
+      )}
 
       {state && "success" in state && (
         <Alert variant="success">Datos actualizados correctamente.</Alert>

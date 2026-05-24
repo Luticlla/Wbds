@@ -204,40 +204,21 @@ export async function revisarExpedienteConDetalle(
   redirect("/admin/expedientes")
 }
 
-export async function aprobarPago(expedienteId: string, _formData?: FormData) {
-  const auth = await requireAdminRole(["SuperAdmin", "Tesoreria"])
-  if (!auth.success) return { error: auth.error }
-  const { supabase, admin } = auth
+export async function autoAprobarColegiatura(
+  expedienteId: string,
+  transaccionId: string,
+  db?: ReturnType<typeof createClient>,
+) {
+  const supabase = db || createClient()
 
   const { data: expediente } = await supabase
     .from("expedientes")
-    .select(`
-      id,
-      estado,
-      solicitantes!expedientes_solicitante_id_fkey (
-        id
-      )
-    `)
+    .select("id, estado, solicitante_id")
     .eq("id", expedienteId)
     .single()
 
   if (!expediente) return { error: "Expediente no encontrado" }
   if (expediente.estado !== "Pendiente de pago") return { error: "El expediente no está pendiente de pago" }
-
-  const { data: pago } = await supabase
-    .from("pagos_inscripcion")
-    .select("id, estado")
-    .eq("expediente_id", expedienteId)
-    .single()
-
-  if (!pago) return { error: "No se encontró pago para este expediente" }
-
-  const { error: errPago } = await supabase
-    .from("pagos_inscripcion")
-    .update({ estado: "Aprobado" })
-    .eq("id", pago.id)
-
-  if (errPago) return { error: errPago.message }
 
   const { data: primeraCarrera } = await supabase
     .from("carreras")
@@ -273,15 +254,53 @@ export async function aprobarPago(expedienteId: string, _formData?: FormData) {
 
   await supabase.from("historial_estados_expediente").insert({
     expediente_id: expedienteId,
-    admin_id: admin.id,
+    admin_id: null,
     estado_anterior: "Pendiente de pago",
     estado_nuevo: "Aprobado",
-    comentario: `Pago aprobado. CIP: ${colegiado.numero_cip}`,
+    comentario: `Pago ${transaccionId} aprobado automáticamente. CIP: ${colegiado.numero_cip}`,
   })
 
-  await crearNotificacion(supabase, expedienteId, "colegiado",
-    "¡Felicidades, eres colegiado!",
-    `Tu colegiatura ha sido aprobada. Tu CIP es: ${colegiado.numero_cip}. Ya puedes descargar tu carnet digital.`)
+  await supabase.from("notificaciones").insert({
+    solicitante_id: expediente.solicitante_id,
+    tipo: "colegiado",
+    titulo: "¡Felicidades, eres colegiado!",
+    mensaje: `Tu colegiatura ha sido aprobada. Tu CIP es: ${colegiado.numero_cip}. Ya puedes descargar tu carnet digital.`,
+  })
+
+  return { success: true, cip: colegiado.numero_cip }
+}
+
+export async function aprobarPago(expedienteId: string) {
+  const auth = await requireAdminRole(["SuperAdmin", "Tesoreria"])
+  if (!auth.success) return { error: auth.error }
+  const { supabase } = auth
+
+  const { data: expediente } = await supabase
+    .from("expedientes")
+    .select(`id, estado`)
+    .eq("id", expedienteId)
+    .single()
+
+  if (!expediente) return { error: "Expediente no encontrado" }
+  if (expediente.estado !== "Pendiente de pago") return { error: "El expediente no está pendiente de pago" }
+
+  const { data: pago } = await supabase
+    .from("pagos_inscripcion")
+    .select("id, estado, transaccion_id")
+    .eq("expediente_id", expedienteId)
+    .single()
+
+  if (!pago) return { error: "No se encontró pago para este expediente" }
+
+  const { error: errPago } = await supabase
+    .from("pagos_inscripcion")
+    .update({ estado: "Aprobado" })
+    .eq("id", pago.id)
+
+  if (errPago) return { error: errPago.message }
+
+  const result = await autoAprobarColegiatura(expedienteId, pago.transaccion_id || "ADMIN", supabase)
+  if (result.error) return { error: result.error }
 
   revalidatePath("/admin/expedientes")
   redirect("/admin/expedientes")

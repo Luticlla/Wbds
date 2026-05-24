@@ -32,9 +32,25 @@ export default async function DatosPage() {
 
   const sede = sedes.data?.find((s) => s.id === solicitante.sede_id)
 
+  const { data: expediente } = await serverClient
+    .from("expedientes")
+    .select("estado")
+    .eq("solicitante_id", solicitante.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const esColegiado = expediente?.estado === "Aprobado"
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <h1 className="text-2xl font-bold text-gray-800">Mis Datos</h1>
+
+      {esColegiado && (
+        <Alert variant="info" title="Datos protegidos">
+          Al ser colegiado, solo puedes modificar tu correo y teléfono. El resto de datos están bloqueados.
+        </Alert>
+      )}
 
       <div className="rounded-lg border bg-white p-6">
         <div className="mb-6 grid gap-2 text-sm sm:grid-cols-2">
@@ -47,13 +63,16 @@ export default async function DatosPage() {
         </div>
 
         <div className="border-t border-gray-200 pt-6">
-          <h2 className="mb-4 text-sm font-semibold text-gray-700">Editar datos editables</h2>
+          <h2 className="mb-4 text-sm font-semibold text-gray-700">
+            {esColegiado ? "Editar contacto" : "Editar datos editables"}
+          </h2>
           <FormularioDatos
             correo={solicitante.correo ?? ""}
             telefono={solicitante.telefono ?? ""}
             universidadId={solicitante.universidad_id ?? null}
             universidades={universidades}
             carreraManual={solicitante.carrera_manual ?? ""}
+            esColegiado={esColegiado}
           />
         </div>
       </div>
