@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createAuthClient } from "@/lib/supabase/auth-server"
 import { requireAdminRole } from "@/lib/auth-helper"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -83,7 +84,7 @@ export async function listarExpedientes(filtros: FiltrosExpedientes = {}) {
 }
 
 export async function obtenerDetalleExpediente(id: string) {
-  const supabase = createClient()
+  const supabase = await createAuthClient()
 
   const { data, error } = await supabase
     .from("expedientes")
