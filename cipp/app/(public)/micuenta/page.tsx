@@ -235,8 +235,22 @@ export default async function UserDashboardPage() {
                   <Link href={`/carnet/${solicitante.dni}`} className="text-sm font-medium text-blue-700 hover:text-blue-900">
                     Ver carnet digital →
                   </Link>
-                  <Link href="/micuenta/pagos" className="text-sm font-medium text-blue-700 hover:text-blue-900">
-                    Ir a pagos mensuales →
+                  <Link
+                    href="/micuenta/pagos"
+                    className={`block rounded-lg border p-3 text-sm ${
+                      colegiado.estado_habilitacion === "Inhabilitado"
+                        ? "border-red-200 bg-red-50"
+                        : "border-gray-200 bg-gray-50"
+                    }`}
+                  >
+                    <span className={`font-medium ${colegiado.estado_habilitacion === "Inhabilitado" ? "text-red-700" : "text-gray-700"}`}>
+                      💳 Pagos Mensuales
+                    </span>
+                    <p className={`mt-1 text-xs ${colegiado.estado_habilitacion === "Inhabilitado" ? "text-red-600" : "text-gray-500"}`}>
+                      {colegiado.estado_habilitacion === "Inhabilitado"
+                        ? "Tienes deuda pendiente. Regulariza tu situación →"
+                        : "Ir a pagos mensuales →"}
+                    </p>
                   </Link>
                 </div>
               </div>
