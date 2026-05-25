@@ -132,9 +132,29 @@ export async function obtenerDetalleExpediente(id: string) {
     .eq("expediente_id", id)
     .limit(1)
 
+  const { data: colegiado } = await supabase
+    .from("colegiados")
+    .select("id, numero_cip, estado_habilitacion")
+    .eq("expediente_id", id)
+    .maybeSingle()
+
+  let pagosMensualidades: PagosMensualidadRow[] = []
+  if (colegiado) {
+    const { data: pm } = await supabase
+      .from("pagos_mensualidades")
+      .select("id, anio, mes, monto, estado, fecha_pago, created_at")
+      .eq("colegiado_id", colegiado.id)
+      .order("anio", { ascending: false })
+      .order("mes", { ascending: false })
+
+    pagosMensualidades = pm ?? []
+  }
+
   const dataWithPago = {
     ...data,
     pagos_inscripcion: pagos ?? [],
+    colegiado: colegiado ?? null,
+    pagos_mensualidades: pagosMensualidades,
   }
 
   return dataWithPago as unknown as ExpedienteDetalle
@@ -369,6 +389,16 @@ interface ExpedienteRow {
   }
 }
 
+interface PagosMensualidadRow {
+  id: string
+  anio: number
+  mes: number
+  monto: number
+  estado: string
+  fecha_pago: string | null
+  created_at: string
+}
+
 interface ExpedienteDetalle {
   id: string
   codigo_expediente: string
@@ -400,4 +430,10 @@ interface ExpedienteDetalle {
     transaccion_id: string | null
     comprobante_url: string | null
   }[]
+  colegiado: {
+    id: string
+    numero_cip: string
+    estado_habilitacion: string
+  } | null
+  pagos_mensualidades: PagosMensualidadRow[]
 }

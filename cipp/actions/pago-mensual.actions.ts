@@ -1,6 +1,6 @@
 "use server"
 
-import { requireUser } from "@/lib/auth-helper"
+import { requireUser, requireAdminRole } from "@/lib/auth-helper"
 import { revalidatePath } from "next/cache"
 import { crearPreferenciaCheckoutPro } from "@/lib/pago/mercadopago"
 
@@ -148,6 +148,68 @@ export async function registrarPagoMensual(formData: FormData) {
 
   revalidatePath("/micuenta/pagos")
   return { success: true }
+}
+
+export interface PagoMensualActualizado {
+  id: string
+  anio: number
+  mes: number
+  monto: number
+  estado: string
+  fecha_pago: string
+}
+
+export async function adminMarcarMensualidadPagada(expedienteId: string) {
+  const auth = await requireAdminRole(["SuperAdmin", "Tesoreria"])
+  if (!auth.success) return { error: auth.error }
+  const { supabase } = auth
+
+  const { data: colegiado } = await supabase
+    .from("colegiados")
+    .select("id, numero_cip")
+    .eq("expediente_id", expedienteId)
+    .maybeSingle()
+
+  if (!colegiado) return { error: "El expediente no tiene un colegiado registrado" }
+
+  const { data: pendientes, error: errPend } = await supabase
+    .from("pagos_mensualidades")
+    .select("id, anio, mes, monto")
+    .eq("colegiado_id", colegiado.id)
+    .eq("estado", "Pendiente")
+
+  if (errPend) return { error: errPend.message }
+  if (!pendientes || pendientes.length === 0) return { error: "No hay mensualidades pendientes" }
+
+  const ahora = new Date().toISOString()
+
+  const { error: errUpdate } = await supabase
+    .from("pagos_mensualidades")
+    .update({ estado: "Pagado", fecha_pago: ahora })
+    .eq("colegiado_id", colegiado.id)
+    .eq("estado", "Pendiente")
+
+  if (errUpdate) return { error: errUpdate.message }
+
+  const pagosActualizados: PagoMensualActualizado[] = pendientes.map((p) => ({
+    ...p,
+    estado: "Pagado",
+    fecha_pago: ahora,
+  }))
+
+  const totalMonto = pendientes.reduce((sum, p) => sum + Number(p.monto), 0)
+
+  revalidatePath("/admin/expedientes")
+
+  return {
+    success: true,
+    data: {
+      colegiadoId: colegiado.id,
+      numeroCip: colegiado.numero_cip,
+      pagos: pagosActualizados,
+      totalMonto,
+    },
+  }
 }
 
 

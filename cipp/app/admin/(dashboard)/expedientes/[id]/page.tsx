@@ -7,6 +7,7 @@ import { ESTADO_BADGE, formatDate, parsearObservaciones } from "@/lib/constants"
 import { ExpedienteActions } from "./ExpedienteActions"
 import { ConfirmarPagoActions } from "./ConfirmarPagoActions"
 import { DocumentPreview } from "@/components/ui/DocumentPreview"
+import { AdminPagoMensualSection } from "@/components/admin/AdminPagoMensualSection"
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -154,6 +155,20 @@ async function ExpedienteContent({ id }: { id: string }) {
             </div>
           )}
         </section>
+      )}
+
+      {/* Pagos Mensuales (solo si es colegiado) */}
+      {detalle.colegiado && (
+        <AdminPagoMensualSection
+          expedienteId={detalle.id}
+          colegiadoId={detalle.colegiado.id}
+          numeroCip={detalle.colegiado.numero_cip}
+          nombres={s.nombres}
+          apellidoPaterno={s.apellido_paterno}
+          apellidoMaterno={s.apellido_materno}
+          dni={s.dni}
+          pagos={detalle.pagos_mensualidades}
+        />
       )}
 
       {/* Resultados de revisión */}
