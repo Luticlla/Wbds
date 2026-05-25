@@ -20,6 +20,7 @@ interface Props {
   pagos: PagoBoleta[]
   totalMonto: number
   fechaPago: string
+  concepto?: string
   onClose?: () => void
 }
 
@@ -42,6 +43,7 @@ export function BoletaReceipt({
   pagos,
   totalMonto,
   fechaPago,
+  concepto = "Pago de mensualidades CIP",
   onClose,
 }: Props) {
   const receiptRef = useRef<HTMLDivElement>(null)
@@ -115,13 +117,18 @@ export function BoletaReceipt({
         {/* Detalle de pagos */}
         <div className="border-b border-gray-300 pb-3 mb-3">
           <p className="text-xs font-bold mb-1">DETALLE DE PAGO</p>
-          <p className="text-xs text-gray-500">Concepto: Pago de mensualidades CIP</p>
-          {pagos.map((p) => (
+          <p className="text-xs text-gray-500">Concepto: {concepto}</p>
+          {pagos.length > 0 ? pagos.map((p) => (
             <div key={`${p.anio}-${p.mes}`} className="flex justify-between text-xs mt-1">
               <span>{nombreMes(p.mes)} {p.anio}</span>
               <span>S/ {p.monto.toFixed(2)}</span>
             </div>
-          ))}
+          )) : (
+            <div className="flex justify-between text-xs mt-1">
+              <span>{concepto}</span>
+              <span>S/ {totalMonto.toFixed(2)}</span>
+            </div>
+          )}
         </div>
 
         {/* Total */}

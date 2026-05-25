@@ -35,7 +35,7 @@ export function PagoForm({ expedienteId }: Props) {
 
     try {
       const res = await mpCrearPreferencia({
-        monto: 1500,
+        monto: 2,
         titulo: "Colegiado Ingenieros Peru",
         externalReference: `EXP-${expedienteId}`,
       })

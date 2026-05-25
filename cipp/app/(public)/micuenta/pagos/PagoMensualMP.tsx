@@ -20,8 +20,10 @@ export function PagoMensualMP({ colegiadoId, total, meses }: Props) {
     setCreando(true)
     setError("")
 
+    const mpTotal = meses.length * 1
+
     try {
-      const res = await mpCrearPreferenciaMensual(colegiadoId, total)
+      const res = await mpCrearPreferenciaMensual(colegiadoId, mpTotal)
 
       if (!res.ok) {
         setError(res.error)
@@ -54,7 +56,7 @@ export function PagoMensualMP({ colegiadoId, total, meses }: Props) {
         loading={creando}
         onClick={handlePagar}
       >
-        {creando ? "Conectando con Mercado Pago..." : `Pagar S/ ${total.toFixed(2)} con Mercado Pago`}
+        {creando ? "Conectando con Mercado Pago..." : `Pagar S/ ${(meses.length * 1).toFixed(2)} con Mercado Pago`}
       </Button>
 
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}

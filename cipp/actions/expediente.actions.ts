@@ -374,6 +374,82 @@ export async function aprobarPago(expedienteId: string, _formData?: FormData) {
   redirect("/admin/expedientes")
 }
 
+export async function adminPagarColegiatura(expedienteId: string) {
+  const auth = await requireAdminRole(["SuperAdmin", "Tesoreria"])
+  if (!auth.success) return { error: auth.error }
+  const { supabase, admin } = auth
+
+  const { data: expediente } = await supabase
+    .from("expedientes")
+    .select("id, estado, solicitante_id")
+    .eq("id", expedienteId)
+    .single()
+
+  if (!expediente) return { error: "Expediente no encontrado" }
+  if (expediente.estado !== "Pendiente de pago") return { error: "El expediente no está pendiente de pago" }
+
+  const transaccionId = `ADMIN-MANUAL-${Date.now()}`
+
+  const { error: errPago } = await supabase.from("pagos_inscripcion").insert({
+    expediente_id: expedienteId,
+    tipo_pago: "Presencial",
+    monto: 1500,
+    estado: "Aprobado",
+    transaccion_id: transaccionId,
+  })
+
+  if (errPago) return { error: errPago.message }
+
+  const { data: primeraCarrera } = await supabase
+    .from("carreras")
+    .select("id")
+    .limit(1)
+    .single()
+
+  if (!primeraCarrera) return { error: "No hay carreras configuradas en el sistema" }
+
+  const { data: cipResult } = await supabase.rpc("incrementar_cip")
+  const numeroCip = cipResult as string
+
+  if (!numeroCip) return { error: "Error al generar el número CIP" }
+
+  const { error: errColegiado } = await supabase
+    .from("colegiados")
+    .insert({
+      expediente_id: expedienteId,
+      carrera_id: primeraCarrera.id,
+      numero_cip: numeroCip,
+    })
+
+  if (errColegiado) return { error: errColegiado.message }
+
+  const { error: errEstado } = await supabase
+    .from("expedientes")
+    .update({ estado: "Aprobado", fecha_revision: new Date().toISOString() })
+    .eq("id", expedienteId)
+
+  if (errEstado) return { error: errEstado.message }
+
+  await supabase.from("historial_estados_expediente").insert({
+    expediente_id: expedienteId,
+    admin_id: admin.id,
+    estado_anterior: "Pendiente de pago",
+    estado_nuevo: "Aprobado",
+    comentario: `Pago presencial aprobado por admin. CIP: ${numeroCip}`,
+  })
+
+  await supabase.from("notificaciones").insert({
+    solicitante_id: expediente.solicitante_id,
+    tipo: "colegiado",
+    titulo: "¡Felicidades, eres colegiado!",
+    mensaje: `Tu colegiatura ha sido pagada y aprobada por el administrador. Tu CIP es: ${numeroCip}. Ya puedes descargar tu carnet digital.`,
+  })
+
+  revalidatePath("/admin/expedientes")
+
+  return { success: true, cip: numeroCip }
+}
+
 interface ExpedienteRow {
   id: string
   codigo_expediente: string

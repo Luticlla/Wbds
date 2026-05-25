@@ -8,6 +8,7 @@ import { ExpedienteActions } from "./ExpedienteActions"
 import { ConfirmarPagoActions } from "./ConfirmarPagoActions"
 import { DocumentPreview } from "@/components/ui/DocumentPreview"
 import { AdminPagoMensualSection } from "@/components/admin/AdminPagoMensualSection"
+import { AdminPagarColegiatura } from "@/components/admin/AdminPagarColegiatura"
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -188,7 +189,17 @@ async function ExpedienteContent({ id }: { id: string }) {
       {detalle.estado === "Pendiente de pago" ? (
         <section className="rounded-lg border bg-white p-6">
           <h2 className="mb-4 text-lg font-semibold text-gray-800">⚡ Revisión de Pago</h2>
-          <ConfirmarPagoActions expedienteId={detalle.id} />
+          {pago ? (
+            <ConfirmarPagoActions expedienteId={detalle.id} />
+          ) : (
+            <AdminPagarColegiatura
+              expedienteId={detalle.id}
+              nombres={s.nombres}
+              apellidoPaterno={s.apellido_paterno}
+              apellidoMaterno={s.apellido_materno}
+              dni={s.dni}
+            />
+          )}
         </section>
       ) : detalle.estado === "Pendiente" && (
         <section className="rounded-lg border bg-white p-6">
