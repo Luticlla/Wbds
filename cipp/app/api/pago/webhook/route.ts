@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { verificarPago } from "@/lib/pago/mercadopago"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { autoAprobarColegiatura } from "@/actions/expediente.actions"
 
 export async function POST(request: NextRequest) {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (pago.externalReference) {
-      const supabase = createClient()
+      const supabase = createAdminClient()
       const externalRef = pago.externalReference
       const estadoMapping: Record<string, string> = {
         approved: "Aprobado",
