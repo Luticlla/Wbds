@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CIP - Colegio de Ingenieros del Perú",
   description: "Sistema de colegiatura profesional - Solicita, consulta y gestiona tu colegiatura",
+  icons: [{ rel: "icon", url: "/foto_banner_cip.jpg" }],
 }
 
 export default function RootLayout({

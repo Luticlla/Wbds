@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { ProcessSection } from "@/components/ProcessSection"
 
 export default function HomePage() {
@@ -20,8 +21,13 @@ export default function HomePage() {
               <div className="mt-6 h-1 w-24 rounded-full bg-cip-gold" />
             </div>
 
-            <div className="flex aspect-[4/3] items-center justify-center rounded-xl border-4 border-cip-gold/50 bg-gradient-to-br from-cip-gold-light to-cip-gold/20 text-cip-gold-dark backdrop-blur-sm">
-              <span className="text-lg">Imagen institucional</span>
+            <div className="relative aspect-[4/3] overflow-hidden rounded-xl border-4 border-cip-gold/50">
+              <Image
+                src="/foto_banner_cip.jpg"
+                alt="Colegio de Ingenieros del Perú"
+                fill
+                className="object-cover"
+              />
             </div>
           </div>
         </div>
