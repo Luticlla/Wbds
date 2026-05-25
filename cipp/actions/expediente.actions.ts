@@ -204,6 +204,72 @@ export async function revisarExpedienteConDetalle(
   redirect("/admin/expedientes")
 }
 
+export async function autoAprobarColegiatura(
+  expedienteId: string,
+  transaccionId: string,
+  db?: ReturnType<typeof createClient>,
+) {
+  const supabase = db || createClient()
+
+  const { data: expediente } = await supabase
+    .from("expedientes")
+    .select("id, estado, solicitante_id")
+    .eq("id", expedienteId)
+    .single()
+
+  if (!expediente) return { error: "Expediente no encontrado" }
+  if (expediente.estado !== "Pendiente de pago") return { error: "El expediente no está pendiente de pago" }
+
+  const { data: primeraCarrera } = await supabase
+    .from("carreras")
+    .select("id")
+    .limit(1)
+    .single()
+
+  if (!primeraCarrera) return { error: "No hay carreras configuradas en el sistema" }
+
+  const { data: cipResult } = await supabase.rpc("incrementar_cip")
+  const numeroCip = cipResult as string
+
+  if (!numeroCip) return { error: "Error al generar el número CIP" }
+
+  const { data: colegiado, error: errColegiado } = await supabase
+    .from("colegiados")
+    .insert({
+      expediente_id: expedienteId,
+      carrera_id: primeraCarrera.id,
+      numero_cip: numeroCip,
+    })
+    .select("numero_cip")
+    .single()
+
+  if (errColegiado) return { error: errColegiado.message }
+
+  const { error: errEstado } = await supabase
+    .from("expedientes")
+    .update({ estado: "Aprobado", fecha_revision: new Date().toISOString() })
+    .eq("id", expedienteId)
+
+  if (errEstado) return { error: errEstado.message }
+
+  await supabase.from("historial_estados_expediente").insert({
+    expediente_id: expedienteId,
+    admin_id: null,
+    estado_anterior: "Pendiente de pago",
+    estado_nuevo: "Aprobado",
+    comentario: `Pago ${transaccionId} aprobado automáticamente. CIP: ${colegiado.numero_cip}`,
+  })
+
+  await supabase.from("notificaciones").insert({
+    solicitante_id: expediente.solicitante_id,
+    tipo: "colegiado",
+    titulo: "¡Felicidades, eres colegiado!",
+    mensaje: `Tu colegiatura ha sido aprobada. Tu CIP es: ${colegiado.numero_cip}. Ya puedes descargar tu carnet digital.`,
+  })
+
+  return { success: true, cip: colegiado.numero_cip }
+}
+
 export async function aprobarPago(expedienteId: string, _formData?: FormData) {
   const auth = await requireAdminRole(["SuperAdmin", "Tesoreria"])
   if (!auth.success) return { error: auth.error }

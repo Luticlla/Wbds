@@ -6,7 +6,7 @@ import { ESTADO_BADGE, formatDate, parsearObservaciones } from "@/lib/constants"
 import { listarNotificaciones } from "@/actions/notificaciones.actions"
 import { NotificacionesSection } from "./NotificacionesSection"
 import { CorregirExpediente } from "./CorregirExpediente"
-import { PagarInscripcion } from "./PagarInscripcion"
+import { PagoForm } from "./PagoForm"
 import Link from "next/link"
 
 const ORDEN_ESTADOS = ["Pendiente", "Pendiente de pago", "Aprobado"]
@@ -245,7 +245,10 @@ export default async function UserDashboardPage() {
 
           {expediente?.estado === "Pendiente de pago" && (
             <div className="md:col-span-3">
-              <PagarInscripcion solicitanteId={solicitante.id} />
+              <div className="rounded-lg border bg-white p-6">
+                <h2 className="mb-4 text-lg font-semibold text-gray-800">💳 Pago de Inscripción</h2>
+                <PagoForm expedienteId={expediente.id} />
+              </div>
             </div>
           )}
 

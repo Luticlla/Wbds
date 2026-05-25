@@ -2,7 +2,7 @@ import { CheckCircle, XCircle, CalendarClock, History } from "lucide-react"
 import { createAuthClient } from "@/lib/supabase/auth-server"
 import { createClient } from "@/lib/supabase/server"
 import { obtenerDeuda, listarPagosMensuales } from "@/actions/pago-mensual.actions"
-import { PagarForm } from "./PagarForm"
+import { PagoMensualMP } from "./PagoMensualMP"
 import { Badge } from "@/components/ui/Badge"
 import { Alert } from "@/components/ui/Alert"
 import { formatDate, nombreMes } from "@/lib/constants"
@@ -84,22 +84,11 @@ export default async function PagosPage() {
                 ))}
               </div>
               <div className="mt-4 border-t border-gray-200 pt-4">
-                {(() => {
-                  const primerMes = deudaResult.data.mesesAdeudados[0]
-                  return (
-                    <>
-                      <p className="mb-2 text-sm text-gray-600">
-                        Puedes pagar <strong>{nombreMes(primerMes.mes)} {primerMes.anio}</strong> por S/ 20.00.
-                        Para regularizar tu situaci&oacute;n, puedes ponerte al d&iacute;a con todos los meses pendientes.
-                      </p>
-                      <PagarForm
-                        colegiadoId={deudaResult.data.colegiadoId}
-                        anio={primerMes.anio}
-                        mes={primerMes.mes}
-                      />
-                    </>
-                  )
-                })()}
+                <PagoMensualMP
+                  colegiadoId={deudaResult.data.colegiadoId}
+                  total={deudaResult.data.totalDeuda}
+                  meses={deudaResult.data.mesesAdeudados}
+                />
               </div>
             </div>
           )}

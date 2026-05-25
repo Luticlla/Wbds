@@ -2,6 +2,7 @@
 
 import { requireUser } from "@/lib/auth-helper"
 import { revalidatePath } from "next/cache"
+import { crearPreferenciaCheckoutPro } from "@/lib/pago/mercadopago"
 
 export async function obtenerDeuda() {
   const auth = await requireUser()
@@ -113,6 +114,21 @@ export async function listarPagosMensuales() {
   if (error) return { error: error.message, data: [] }
 
   return { data, error: null }
+}
+
+export async function mpCrearPreferenciaMensual(colegiadoId: string, total: number) {
+  try {
+    const resultado = await crearPreferenciaCheckoutPro({
+      monto: total,
+      titulo: "Pago de mensualidades CIP",
+      externalReference: `MENSUAL-${colegiadoId}`,
+    })
+    return { ok: true as const, initPoint: resultado.initPoint, preferenceId: resultado.id }
+  } catch (error: unknown) {
+    const err = error as { cause?: string; message?: string; response?: unknown }
+    console.error("[MP Error Mensual]", err?.cause || err?.message || error)
+    return { ok: false as const, error: `Error al crear la preferencia: ${err?.message || "ver consola"}` }
+  }
 }
 
 export async function registrarPagoMensual(formData: FormData) {
