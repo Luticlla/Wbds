@@ -21,7 +21,7 @@ export async function obtenerDeuda() {
 
   const { data: colegiado } = await supabase
     .from("colegiados")
-    .select("id, estado_habilitacion, fecha_colegiatura")
+    .select("id, estado_habilitacion")
     .eq("expediente_id", expediente.id)
     .maybeSingle()
 
@@ -31,42 +31,15 @@ export async function obtenerDeuda() {
   const anioActual = ahora.getFullYear()
   const mesActual = ahora.getMonth() + 1
 
-  const [anioStr, mesStr] = colegiado.fecha_colegiatura.split("-")
-  let mesInicio = parseInt(mesStr) + 1
-  let anioInicio = parseInt(anioStr)
-
-  if (mesInicio > 12) {
-    mesInicio = 1
-    anioInicio++
-  }
-
-  const mesesPagados = new Set<string>()
-
-  const { data: pagos } = await supabase
+  const { data: pendientes } = await supabase
     .from("pagos_mensualidades")
     .select("anio, mes")
     .eq("colegiado_id", colegiado.id)
-    .eq("estado", "Pagado")
+    .eq("estado", "Pendiente")
+    .order("anio", { ascending: true })
+    .order("mes", { ascending: true })
 
-  for (const p of pagos ?? []) {
-    mesesPagados.add(`${p.anio}-${p.mes}`)
-  }
-
-  const mesesAdeudados: { anio: number; mes: number }[] = []
-  let currentAnio = anioInicio
-  let currentMes = mesInicio
-
-  while (currentAnio < anioActual || (currentAnio === anioActual && currentMes < mesActual)) {
-    if (!mesesPagados.has(`${currentAnio}-${currentMes}`)) {
-      mesesAdeudados.push({ anio: currentAnio, mes: currentMes })
-    }
-    currentMes++
-    if (currentMes > 12) {
-      currentMes = 1
-      currentAnio++
-    }
-  }
-
+  const mesesAdeudados: { anio: number; mes: number }[] = pendientes ?? []
   const totalDeuda = mesesAdeudados.length * 20
 
   return {
